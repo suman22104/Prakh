@@ -108,3 +108,96 @@ NODE_ENV=production npm start
 ## Advisory Disclaimer
 
 Automated checks are advisory only and cannot guarantee that any message is safe or fraudulent. If you suspect financial fraud in India, immediately call the **National Cybercrime Helpline at `1930`** or file a report at **https://cybercrime.gov.in**.
+
+
+---
+
+## Repository Structure
+
+```
+parakh/
+├── frontend/                  # React 19 + Vite + Tailwind CSS PWA
+│   ├── index.html
+│   ├── vite.config.ts
+│   ├── public/                # PWA icons (192x192, 512x512, maskable, apple-touch-icon)
+│   └── src/
+│       ├── app/               # App.tsx, providers.tsx, router.tsx (React.lazy + Suspense)
+│       ├── components/        # Reusable UI (AppShell, ErrorBoundary, MaskedTextView, PWAInstallButton, VerdictBadge)
+│       ├── contexts/          # AppContext, LanguageContext
+│       ├── hooks/             # useOnlineStatus, usePWAInstall, useSpeech, useTextToSpeech, useLocalizedResult
+│       ├── i18n/              # EN / हिन्दी / বাংলা translations
+│       ├── pages/             # 7 lazy-loaded routes
+│       └── services/          # api.ts, firebase.ts, persistence.ts
+├── backend/                   # Express + TypeScript API & production static server
+│   ├── server.ts              # Entry point (dev: Vite middleware; prod: serves frontend/dist)
+│   └── src/
+│       ├── config/            # env.ts
+│       ├── database/          # mysql_schema.sql (optional unused self-hosting reference; Firestore is primary)
+│       ├── middleware/        # security.ts (Helmet, CORS allowlist, rate limiter)
+│       ├── routes/            # api.ts (/api/health, /api/analyze, /api/translate, /api/tts, /api/test-cases)
+│       ├── services/          # aiProvider.ts, hybridAnalysisService.ts, speechTranslationService.ts
+│       ├── tests/             # engine.test.ts, interop.test.ts
+│       └── utils/             # validators.ts, aiResponseValidator.ts
+├── shared/                    # Shared TypeScript modules used by both frontend & backend
+│   ├── masking.ts, ruleEngine.ts, interopCheck.ts, urlAnalyzer.ts, syntheticDataset.ts, types.ts
+├── firebase/                  # Firebase Firestore rules, tests, and config
+│   ├── firestore.rules, firestore.rules.test.ts, firebase-applet-config.json, firebase.json
+├── docs/                      # Architecture, demo script, synthetic test cases, screenshots
+├── .env.example               # Grouped environment variable template
+├── .nvmrc                     # Node 22
+└── package.json               # Root scripts (dev, build, start, test, lint, clean)
+```
+
+---
+
+## How to Install as an App (PWA)
+
+- **Android (Chrome / Edge)**: Open Parakh over HTTPS, tap the **Install App** button in the header (or tap browser menu `⋮` → **Install app**).
+- **iPhone / iPad (Safari)**: Tap the **Share** icon (`□↑`) at the bottom of Safari → scroll down and tap **Add to Home Screen**.
+- **Desktop (Chrome / Edge)**: Click the **Install** icon in the address bar (or the in-app **Install** button).
+
+---
+
+## Run Locally
+
+```bash
+cp .env.example .env
+npm install
+npm run lint
+npm test
+npm run dev
+```
+
+For a local production build & start:
+
+```bash
+npm run build
+NODE_ENV=production npm start
+```
+
+---
+
+## Deploy
+
+### 1. Render (Single Web Service)
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Health Check Path**: `/api/health`
+- **Environment Variables**:
+  - `NODE_ENV=production`
+  - `GEMINI_API_KEY=<your-key>` (optional; falls back to labeled rules-only mode if omitted)
+  - `AI_PROVIDER=gemini`
+  - `GEMINI_MODEL=gemini-2.5-flash`
+  - `ADMIN_EMAIL=<your-google-email>`
+  - `VITE_ADMIN_EMAIL=<your-google-email>` *(must be set before `npm run build`)*
+  - `APP_URL=https://<your-app>.onrender.com`
+  - `ALLOWED_ORIGINS=https://<your-app>.onrender.com`
+- *Note*: Render's free tier sleeps after inactivity, so the first request after idle may take 30–50 seconds.
+
+### 2. Firebase
+1. Deploy Firestore rules to the named database (`ai-studio-fccc67b4-a7e0-4ccb-9fd5-e89fb10edebc`):
+   ```bash
+   firebase deploy --only firestore:rules --project gen-lang-client-0980170558
+   ```
+2. In **Firebase Console → Authentication → Sign-in method**, enable **Google**.
+3. In **Firebase Console → Authentication → Settings → Authorized domains**, add `localhost` and your Render domain (`<your-app>.onrender.com`).

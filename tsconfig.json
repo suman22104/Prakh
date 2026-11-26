@@ -20,10 +20,13 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@shared/*": [
+        "./shared/*"
       ]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["dist", "firestore.rules.test.ts"]
+  "exclude": ["dist", "frontend/dist", "firebase/firestore.rules.test.ts"]
 }
