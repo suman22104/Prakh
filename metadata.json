@@ -1,0 +1,6 @@
+{
+  "name": "Parakh",
+  "description": "Check before you pay. Multilingual, privacy-first PWA helping Indian citizens, seniors, and shop helpers verify suspicious SMS, WhatsApp messages, URLs, and UPI payment requests with hybrid AI and offline rule-based protection.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

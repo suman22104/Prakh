@@ -1,0 +1,259 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened global primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerified() && request.auth.token.email == 'suman124217e@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() ||
+        (isVerified() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidInputType(val) {
+      return val is string && val in ['sms', 'whatsapp', 'url', 'upi_request'];
+    }
+
+    function isValidLanguage(val) {
+      return val is string && val in ['en', 'hi', 'bn'];
+    }
+
+    function isValidVerdict(val) {
+      return val is string && val in ['SAFE', 'SUSPICIOUS', 'SCAM', 'UNCERTAIN'];
+    }
+
+    function isValidConfidence(val) {
+      return val is string && val in ['LOW', 'MEDIUM', 'HIGH'];
+    }
+
+    function isValidAssessmentSource(val) {
+      return val is string && val in ['hybrid_ai', 'rule_based_fallback', 'offline_rules'];
+    }
+
+    function isValidStringList(arr, maxItems, maxItemLen) {
+      return arr is list &&
+        arr.size() <= maxItems &&
+        (arr.size() == 0 || (arr[0] is string && arr[0].size() <= maxItemLen));
+    }
+
+    function isValidAnalysis(data) {
+      return data.keys().hasAll([
+          'ownerId', 'inputType', 'language', 'maskedText', 'verdict',
+          'riskScore', 'confidence', 'assessmentSource', 'warningSigns',
+          'explanation', 'recommendedActions', 'humanReviewRecommended',
+          'consentStorage', 'consentExternalAi', 'consentHumanReview', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'inputType', 'language', 'maskedText', 'verdict',
+          'riskScore', 'confidence', 'assessmentSource', 'warningSigns',
+          'explanation', 'recommendedActions', 'humanReviewRecommended',
+          'consentStorage', 'consentExternalAi', 'consentHumanReview', 'createdAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        isValidInputType(data.inputType) &&
+        isValidLanguage(data.language) &&
+        data.maskedText is string && data.maskedText.size() >= 1 && data.maskedText.size() <= 2500 &&
+        isValidVerdict(data.verdict) &&
+        data.riskScore is int && data.riskScore >= 0 && data.riskScore <= 100 &&
+        isValidConfidence(data.confidence) &&
+        isValidAssessmentSource(data.assessmentSource) &&
+        isValidStringList(data.warningSigns, 12, 200) &&
+        data.explanation is string && data.explanation.size() >= 1 && data.explanation.size() <= 1200 &&
+        isValidStringList(data.recommendedActions, 10, 240) &&
+        data.humanReviewRecommended is bool &&
+        data.consentStorage is bool && data.consentStorage == true &&
+        data.consentExternalAi is bool &&
+        data.consentHumanReview is bool &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidConsent(data) {
+      return data.keys().hasAll([
+          'ownerId', 'consentExternalAi', 'consentStorage', 'consentHumanReview',
+          'policyVersion', 'inputType', 'language', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'consentExternalAi', 'consentStorage', 'consentHumanReview',
+          'policyVersion', 'inputType', 'language', 'createdAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.consentExternalAi is bool &&
+        data.consentStorage is bool &&
+        data.consentHumanReview is bool &&
+        data.policyVersion is string && data.policyVersion.size() >= 1 && data.policyVersion.size() <= 32 &&
+        isValidInputType(data.inputType) &&
+        isValidLanguage(data.language) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidReviewCase(data) {
+      return data.keys().hasAll([
+          'ownerId', 'analysisId', 'maskedExcerpt', 'inputType', 'language',
+          'verdict', 'riskScore', 'confidence', 'consentHumanReview',
+          'status', 'reviewerNotes', 'reviewedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'analysisId', 'maskedExcerpt', 'inputType', 'language',
+          'verdict', 'riskScore', 'confidence', 'consentHumanReview',
+          'status', 'reviewerNotes', 'reviewedBy', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) &&
+        data.analysisId is string && isValidId(data.analysisId) &&
+        data.maskedExcerpt is string && data.maskedExcerpt.size() >= 1 && data.maskedExcerpt.size() <= 2500 &&
+        isValidInputType(data.inputType) &&
+        isValidLanguage(data.language) &&
+        isValidVerdict(data.verdict) &&
+        data.riskScore is int && data.riskScore >= 0 && data.riskScore <= 100 &&
+        isValidConfidence(data.confidence) &&
+        data.consentHumanReview is bool && data.consentHumanReview == true &&
+        data.status is string && data.status in ['PENDING', 'REVIEWED', 'ESCALATED', 'CLOSED'] &&
+        data.reviewerNotes is string && data.reviewerNotes.size() <= 2000 &&
+        data.reviewedBy is string && data.reviewedBy.size() <= 160 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll([
+          'ownerId', 'eventType', 'actorRole', 'assessmentSource',
+          'consentGranted', 'summary', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'eventType', 'actorRole', 'assessmentSource',
+          'consentGranted', 'summary', 'createdAt'
+        ]) &&
+        data.ownerId is string && isValidId(data.ownerId) && data.ownerId == request.auth.uid &&
+        data.eventType is string && data.eventType in [
+          'SCAM_CHECK', 'CONSENT_GRANTED', 'CONSENT_REVOKED',
+          'HISTORY_DELETED', 'REVIEW_SUBMITTED', 'REVIEW_UPDATED',
+          'OFFLINE_QUEUE_SUBMITTED'
+        ] &&
+        data.actorRole is string && data.actorRole in ['citizen', 'helper', 'reviewer'] &&
+        data.assessmentSource is string && data.assessmentSource in [
+          'hybrid_ai', 'rule_based_fallback', 'offline_rules', 'system'
+        ] &&
+        data.consentGranted is bool &&
+        data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 300 &&
+        data.createdAt is timestamp;
+    }
+
+    // Consented masked scam analysis history
+    match /analyses/{analysisId} {
+      allow get: if isSignedIn() && isValidId(analysisId) && (
+        existing().ownerId == request.auth.uid ||
+        (isAdmin() && existing().consentHumanReview == true)
+      );
+      allow list: if isSignedIn() && (
+        existing().ownerId == request.auth.uid ||
+        (isBootstrappedAdmin() && existing().consentHumanReview == true)
+      );
+      allow create: if isVerified() && isValidId(analysisId) &&
+        isValidAnalysis(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerified() && isValidId(analysisId) &&
+        existing().ownerId == request.auth.uid;
+    }
+
+    // Explicit consent ledger
+    match /consents/{consentId} {
+      allow get: if isSignedIn() && isValidId(consentId) && (
+        existing().ownerId == request.auth.uid ||
+        (isAdmin() && existing().consentHumanReview == true)
+      );
+      allow list: if isSignedIn() && (
+        existing().ownerId == request.auth.uid ||
+        (isBootstrappedAdmin() && existing().consentHumanReview == true)
+      );
+      allow create: if isVerified() && isValidId(consentId) &&
+        isValidConsent(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerified() && isValidId(consentId) &&
+        existing().ownerId == request.auth.uid;
+    }
+
+    // Human review queue — strictly consented cases only
+    match /reviewCases/{caseId} {
+      allow get: if isSignedIn() && isValidId(caseId) && (
+        existing().ownerId == request.auth.uid ||
+        (isAdmin() && existing().consentHumanReview == true)
+      );
+      allow list: if isSignedIn() && (
+        existing().ownerId == request.auth.uid ||
+        (isBootstrappedAdmin() && existing().consentHumanReview == true)
+      );
+      allow create: if isVerified() && isValidId(caseId) &&
+        isValidReviewCase(incoming()) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().status == 'PENDING' &&
+        incoming().reviewerNotes == '' &&
+        incoming().reviewedBy == '' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      // Terminal state lock: CLOSED cases cannot be modified by non-admins; only verified admins update review status/notes
+      allow update: if isVerified() && isValidId(caseId) &&
+        isValidReviewCase(incoming()) &&
+        isAdmin() &&
+        existing().consentHumanReview == true &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().analysisId == existing().analysisId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'status', 'reviewerNotes', 'reviewedBy', 'updatedAt'
+        ]);
+      allow delete: if isVerified() && isValidId(caseId) && (
+        existing().ownerId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // PII-free operational audit events
+    match /auditLogs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && (
+        existing().ownerId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        existing().ownerId == request.auth.uid || isBootstrappedAdmin()
+      );
+      allow create: if isVerified() && isValidId(logId) &&
+        isValidAuditLog(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerified() && isValidId(logId) &&
+        existing().ownerId == request.auth.uid;
+    }
+
+    // Trusted admin lookup — never writable from client SDK
+    match /admins/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+  }
+}

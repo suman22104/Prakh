@@ -1,0 +1,313 @@
+{
+  "entities": {
+    "AnalysisRecord": {
+      "title": "AnalysisRecord",
+      "description": "A privacy-masked scam analysis record stored only when the citizen grants explicit storage consent.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID of the citizen who ran the check."
+        },
+        "inputType": {
+          "type": "string",
+          "enum": ["sms", "whatsapp", "url", "upi_request"],
+          "description": "Channel or message type selected by the user."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "hi", "bn"],
+          "description": "Selected display and explanation language."
+        },
+        "maskedText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2500,
+          "description": "Automatically redacted message text with phone numbers, UPI IDs, and personal identifiers removed."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["SAFE", "SUSPICIOUS", "SCAM", "UNCERTAIN"],
+          "description": "Advisory risk classification."
+        },
+        "riskScore": {
+          "type": "integer",
+          "description": "Heuristic risk indicator from 0 to 100 (not a statistically calibrated probability)."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["LOW", "MEDIUM", "HIGH"],
+          "description": "Qualitative signal confidence level."
+        },
+        "assessmentSource": {
+          "type": "string",
+          "enum": ["hybrid_ai", "rule_based_fallback", "offline_rules"],
+          "description": "Indicates whether hybrid AI or rule-based fallback generated the result."
+        },
+        "warningSigns": {
+          "type": "array",
+          "description": "List of up to 12 plain-language detected risk indicators."
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200,
+          "description": "Short non-technical explanation in the selected language."
+        },
+        "recommendedActions": {
+          "type": "array",
+          "description": "List of up to 10 concrete safety actions."
+        },
+        "humanReviewRecommended": {
+          "type": "boolean",
+          "description": "Whether human review or bank verification is advised."
+        },
+        "consentStorage": {
+          "type": "boolean",
+          "description": "Must be true for any persisted analysis document."
+        },
+        "consentExternalAi": {
+          "type": "boolean",
+          "description": "Whether user consented to sending masked text to an external AI provider."
+        },
+        "consentHumanReview": {
+          "type": "boolean",
+          "description": "Whether user explicitly opted in to share this masked record for human review."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of analysis creation."
+        }
+      },
+      "required": [
+        "ownerId",
+        "inputType",
+        "language",
+        "maskedText",
+        "verdict",
+        "riskScore",
+        "confidence",
+        "assessmentSource",
+        "warningSigns",
+        "explanation",
+        "recommendedActions",
+        "humanReviewRecommended",
+        "consentStorage",
+        "consentExternalAi",
+        "consentHumanReview",
+        "createdAt"
+      ]
+    },
+    "ConsentRecord": {
+      "title": "ConsentRecord",
+      "description": "Immutable record of explicit user consent choices for external AI processing, storage, or human review.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "consentExternalAi": { "type": "boolean" },
+        "consentStorage": { "type": "boolean" },
+        "consentHumanReview": { "type": "boolean" },
+        "policyVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "inputType": {
+          "type": "string",
+          "enum": ["sms", "whatsapp", "url", "upi_request"]
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "hi", "bn"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "consentExternalAi",
+        "consentStorage",
+        "consentHumanReview",
+        "policyVersion",
+        "inputType",
+        "language",
+        "createdAt"
+      ]
+    },
+    "ReviewCase": {
+      "title": "ReviewCase",
+      "description": "Consented human-oversight review case visible only to its owner and authorized reviewers.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "analysisId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "maskedExcerpt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2500
+        },
+        "inputType": {
+          "type": "string",
+          "enum": ["sms", "whatsapp", "url", "upi_request"]
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "hi", "bn"]
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["SAFE", "SUSPICIOUS", "SCAM", "UNCERTAIN"]
+        },
+        "riskScore": {
+          "type": "integer"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["LOW", "MEDIUM", "HIGH"]
+        },
+        "consentHumanReview": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PENDING", "REVIEWED", "ESCALATED", "CLOSED"]
+        },
+        "reviewerNotes": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "reviewedBy": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "analysisId",
+        "maskedExcerpt",
+        "inputType",
+        "language",
+        "verdict",
+        "riskScore",
+        "confidence",
+        "consentHumanReview",
+        "status",
+        "reviewerNotes",
+        "reviewedBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "PII-free operational audit event tracking checks, consent actions, history deletion, and reviewer actions.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventType": {
+          "type": "string",
+          "enum": [
+            "SCAM_CHECK",
+            "CONSENT_GRANTED",
+            "CONSENT_REVOKED",
+            "HISTORY_DELETED",
+            "REVIEW_SUBMITTED",
+            "REVIEW_UPDATED",
+            "OFFLINE_QUEUE_SUBMITTED"
+          ]
+        },
+        "actorRole": {
+          "type": "string",
+          "enum": ["citizen", "helper", "reviewer"]
+        },
+        "assessmentSource": {
+          "type": "string",
+          "enum": ["hybrid_ai", "rule_based_fallback", "offline_rules", "system"]
+        },
+        "consentGranted": { "type": "boolean" },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "eventType",
+        "actorRole",
+        "assessmentSource",
+        "consentGranted",
+        "summary",
+        "createdAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Trusted admin/reviewer marker document managed out-of-band.",
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["reviewer", "admin"]
+        },
+        "active": { "type": "boolean" }
+      },
+      "required": ["role", "active"]
+    }
+  },
+  "firestore": {
+    "/analyses/{analysisId}": {
+      "schema": { "$ref": "#/entities/AnalysisRecord" },
+      "description": "Consented masked scam analysis history scoped to ownerId."
+    },
+    "/consents/{consentId}": {
+      "schema": { "$ref": "#/entities/ConsentRecord" },
+      "description": "Explicit user consent records scoped to ownerId."
+    },
+    "/reviewCases/{caseId}": {
+      "schema": { "$ref": "#/entities/ReviewCase" },
+      "description": "Human review queue strictly restricted to cases with consentHumanReview == true."
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "PII-free operational audit events."
+    },
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Read-only admin membership lookup."
+    }
+  }
+}
